@@ -1,0 +1,13 @@
+[package]
+name = "crowdfund"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+solana-program = "1.10"
+thiserror = "1.0"
+borsh = "0.9"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
