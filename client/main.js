@@ -11,6 +11,8 @@ let programKeypair;
 let connection;
 let payer;
 
+const SYSTEM_RPOGRAM = new solana.PublicKey("11111111111111111111111111111111");
+
 async function establishConnection() {
     programKeypair = await utils.createKeypairFromFile(PROGRAM_KEY);
     connection = new solana.Connection("http://127.0.0.1:8899", 'confirmed');
@@ -63,6 +65,7 @@ async function createProject(params) {
 
     let init_instruction = new solana.TransactionInstruction({
         keys: [
+            { pubkey: SYSTEM_RPOGRAM, isSigner: false, isWritable: false },
             { pubkey: params.owner.publicKey, isSigner: true, isWriteable: true },
             { pubkey: bank_address, isSigner: false, isWriteable: true },
             { pubkey: project_address, isSigner: false, isWriteable: true },
