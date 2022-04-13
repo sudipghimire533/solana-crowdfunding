@@ -14,6 +14,7 @@ impl Processor {
         instructions: &[u8],
     ) -> ProgramResult {
         let instruction = Instruction::unpack(instructions)?;
+        msg!("Instruction is: {:?}", instruction);
 
         match instruction {
             Instruction::Create { params } => {
@@ -31,6 +32,8 @@ impl Processor {
         program_id: &Pubkey,
         account_info: &[AccountInfo],
     ) -> ProgramResult {
+        todo!();
+        
         Ok(())
     }
 
