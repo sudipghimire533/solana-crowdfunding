@@ -168,13 +168,32 @@ impl Processor {
         let system_account = next_account_info(accounts_iter)?;
         let creditor = next_account_info(accounts_iter)?;
         let project = next_account_info(accounts_iter)?;
+        let bank = next_account_info(accounts_iter)?;
 
-        let mut project_stored_bytes = &**project.try_borrow_data()?;
         let creditor_address = creditor.signer_key().ok_or(CrowdError::IllegalDonator)?;
-        let project_info = ProjectInfo::deserialize(&mut project_stored_bytes)
+        let mut project_info = ProjectInfo::deserialize(&mut &**project.try_borrow_data()?)
             .map_err(|_| CrowdError::CorruptedProjectData)?;
 
-        msg!("{:#?}", project_info);
+        if bank.unsigned_key().ne(&project_info.bank) {
+            Err(CrowdError::BankAddressMismatch)?
+        }
+
+        // Do actual lamports transfer
+        let donate_instruction =
+            system_instruction::transfer(creditor_address, &project_info.bank, params.amount);
+        program::invoke(
+            &donate_instruction,
+            &[system_account.clone(), creditor.clone(), bank.clone()],
+        )?;
+
+        // Update info in project address itself
+        project_info.raised += params.amount;
+
+        // Write updated data in project
+        <ProjectInfo as BorshSerialize>::serialize(
+            &project_info,
+            &mut &mut project.try_borrow_mut_data()?[..],
+        )?;
 
         todo!();
 

@@ -1,6 +1,7 @@
 const fs = require("mz/fs");
 const path = require("path");
 const os = require("os");
+const instruction = require("./instruction");
 const solana = require("@solana/web3.js");
 
 async function createKeypairFromFile(filePath) {
@@ -36,6 +37,19 @@ async function transferFund(connection, params) {
     return tx_hash;
 }
 
+async function getProjectInfo(connection, project_address) {
+    const project_bytes = (await connection.getAccountInfo(project_address)).data;
+    let project = new instruction.projectInfo();
+
+    console.log("Project bytes is");
+    console.log(project_bytes.toJSON());
+    project.deserialize(project_bytes);
+
+    return project;
+}
+
+
+exports.getProjectInfo = getProjectInfo;
 exports.transferFund = transferFund;
 exports.establishPayer = establishPayer;
 exports.createKeypairFromFile = createKeypairFromFile;

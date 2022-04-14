@@ -35,6 +35,9 @@ pub enum CrowdError {
 
     #[error("This project address have malformed data")]
     CorruptedProjectData,
+
+    #[error("Provided bank address doesn't match to project bank address")]
+    BankAddressMismatch,
 }
 
 impl From<CrowdError> for ProgramError {

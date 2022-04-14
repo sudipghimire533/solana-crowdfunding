@@ -11,7 +11,7 @@ let programKeypair;
 let connection;
 let payer;
 
-const SYSTEM_RPOGRAM = new solana.PublicKey("11111111111111111111111111111111");
+const SYSTEM_RPOGRAM = solana.SystemProgram.programId;
 
 async function establishConnection() {
     programKeypair = await utils.createKeypairFromFile(PROGRAM_KEY);
@@ -57,19 +57,20 @@ async function complimentProject(params) {
     let project_address = params.project;
     let amount = params.amount;
 
+    let projectInfo = await utils.getProjectInfo(connection, project_address);
+    let project_bank = projectInfo.bank;
+
     let compliment_params = new instruction.complimentParams(amount);
     let compliment_project_instruction = Buffer.concat(
         [Buffer.from([instruction.COMPILMENT_PROJECT]), compliment_params.serialize()],
     );
-
-    console.log("Compliment project instructon.");
-    console.log(compliment_project_instruction.toJSON());
 
     let compliment_tx = new solana.TransactionInstruction({
         keys: [
             { pubkey: SYSTEM_RPOGRAM, isSigner: false, isWritable: false },
             { pubkey: creditor.publicKey, isSigner: true, isWritable: true },
             { pubkey: project_address, isSigner: false, isWritable: true },
+            { pubkey: project_bank, isSigner: false, isWritable: true },
         ],
         programId: programKeypair.publicKey,
         data: compliment_project_instruction,

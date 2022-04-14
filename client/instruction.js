@@ -1,4 +1,6 @@
 const borsh = require("borsh");
+const solana = require("@solana/web3.js");
+const buf = require("buffer");
 
 const CREATE_PROJECT = 0x0;
 const COMPILMENT_PROJECT = 0x1;
@@ -40,11 +42,11 @@ class complimentParams {
     }
 
     serialize = function () {
-        return borsh.serialize(ComplimentParamsSchema, this);
+        return borsh.serialize(complimentParamsSchema, this);
     }
 }
 
-const ComplimentParamsSchema = new Map([
+const complimentParamsSchema = new Map([
     [complimentParams,
         {
             kind: 'struct',
@@ -55,6 +57,46 @@ const ComplimentParamsSchema = new Map([
     ]
 ]);
 
+class projectInfo {
+    bank = null;
+    owner = null;
+    milestone = null;
+    raised = null;
+    name = null;
+
+    deserialize = function (bytes) {
+        let bank_address_bytes = bytes.slice(0, 32);
+        let rest = bytes.slice(32)
+        let bank_address = new solana.PublicKey(bank_address_bytes);
+
+        let owner_address_bytes = rest.slice(0, 32);
+        rest = rest.slice(32);
+        let owner_address = new solana.PublicKey(owner_address_bytes);
+
+        // TODO:
+        // deserialize other fields too
+
+        this.bank = bank_address;
+        this.owner = owner_address;
+    }
+}
+
+const projectInfoSchema = new Map([
+    [projectInfo,
+        {
+            kind: 'struct',
+            fields: [
+                ['bank', ['u8', '32']],
+                ['owner', ['u8', '32']],
+                ['milestone', 'u64'],
+                ['raised', 'u64'],
+                ['name', ['u8']],
+            ]
+        }
+    ]
+]);
+
+exports.projectInfo = projectInfo;
 exports.createParams = createParams;
 exports.complimentParams = complimentParams;
 exports.CREATE_PROJECT = CREATE_PROJECT;
