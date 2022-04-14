@@ -20,7 +20,6 @@ pub struct CreateParams {
 
 #[derive(Debug, BorshSerialize, BorshDeserialize, PartialEq, Eq, Clone)]
 pub struct ComplimentParams {
-    address: Pubkey,
     amount: u64,
 }
 
@@ -57,6 +56,15 @@ impl Instruction {
                 };
             }
 
+            1 => {
+                let (mut amount_bytes, _rest) = data.split_at(8);
+                let amount = <u64 as BorshDeserialize>::deserialize(&mut amount_bytes)
+                    .map_err(|_| InvalidInstruction)?;
+
+                instruction = Instruction::Compliment {
+                    params: ComplimentParams { amount },
+                }
+            }
             _ => {
                 return Err(InvalidInstruction);
             }

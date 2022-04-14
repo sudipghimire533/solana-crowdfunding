@@ -2,7 +2,9 @@
 
 use crate::error::{self, CrowdError};
 use crate::instruction::{self, Instruction};
+use crate::state::{self, ProjectInfo};
 use crate::utils;
+use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     self,
     account_info::{self, next_account_info, AccountInfo},
@@ -76,6 +78,15 @@ impl Processor {
             Err(CrowdError::UnexpectedBump)?;
         }
 
+        // Create a project details
+        let project_info = ProjectInfo {
+            bank: bank_address.clone(),
+            owner: creator_address.clone(),
+            milestone: params.target,
+            raised: 0,
+            name: params.name.clone(),
+        };
+
         // Create a bank account with 0 space
         // and enough rent exemption
         {
@@ -105,12 +116,12 @@ impl Processor {
             })?;
         }
 
-        // Create project address with 0 space and
-        // minimum lamports
+        // Create project address with size of project info
+        // and with minimum lamports to store it
         {
             let create_project_instruction = {
-                let space = 0u64;
-                let lamports = utils::RENT.minimum_balance(space as usize);
+                let space = project_info.size().ok_or(CrowdError::LargeProjectInfo)?;
+                let lamports = utils::RENT.minimum_balance(space.try_into().unwrap());
                 system_instruction::create_account(
                     &creator.key,
                     &project.key,
@@ -133,7 +144,11 @@ impl Processor {
             })?;
         }
 
-        todo!();
+        // Store project info
+        <ProjectInfo as BorshSerialize>::serialize(
+            &project_info,
+            &mut &mut project.try_borrow_mut_data()?[..],
+        )?;
 
         Ok(())
     }
@@ -143,6 +158,26 @@ impl Processor {
         program_id: &Pubkey,
         account_info: &[AccountInfo],
     ) -> ProgramResult {
+        let accounts_iter = &mut account_info.iter();
+
+        // Collect required accounts.
+        // System account to create other accounts
+        // creator is who is owner of this program
+        // bank is pda from creator
+        // project is pda from creator
+        let system_account = next_account_info(accounts_iter)?;
+        let creditor = next_account_info(accounts_iter)?;
+        let project = next_account_info(accounts_iter)?;
+
+        let mut project_stored_bytes = &**project.try_borrow_data()?;
+        let creditor_address = creditor.signer_key().ok_or(CrowdError::IllegalDonator)?;
+        let project_info = ProjectInfo::deserialize(&mut project_stored_bytes)
+            .map_err(|_| CrowdError::CorruptedProjectData)?;
+
+        msg!("{:#?}", project_info);
+
+        todo!();
+
         Ok(())
     }
 }

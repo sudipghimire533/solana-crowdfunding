@@ -3,20 +3,15 @@ use solana_program::pubkey::Pubkey;
 
 #[derive(BorshDeserialize, BorshSerialize, Eq, Debug, PartialEq, Clone)]
 pub struct ProjectInfo {
-    pub target: u64,
     pub bank: Pubkey,
     pub owner: Pubkey,
+    pub milestone: u64,
+    pub raised: u64,
     pub name: String,
 }
 
-#[cfg(test)]
-impl Default for ProjectInfo {
-    fn default() -> Self {
-        ProjectInfo {
-            target: 10,
-            bank: Pubkey::new_unique(),
-            owner: Pubkey::new_unique(),
-            name: "Some name".to_string(),
-        }
+impl ProjectInfo {
+    pub fn size(&self) -> Option<u64> {
+        std::mem::size_of_val::<Self>(self).try_into().ok()
     }
 }

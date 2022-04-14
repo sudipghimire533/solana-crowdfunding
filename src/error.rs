@@ -12,6 +12,9 @@ pub enum CrowdError {
     #[error("Creator didn't signed this instruction")]
     IllegalCreator,
 
+    #[error("Donator didn't signed this message")]
+    IllegalDonator,
+
     #[error("Bank address was not as expected")]
     UnexpectedBankAddress,
 
@@ -26,6 +29,12 @@ pub enum CrowdError {
 
     #[error("This bank address is already in use")]
     BankAddresCollision,
+
+    #[error("This project info is too large to store.")]
+    LargeProjectInfo,
+
+    #[error("This project address have malformed data")]
+    CorruptedProjectData,
 }
 
 impl From<CrowdError> for ProgramError {
