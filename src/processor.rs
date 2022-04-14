@@ -7,8 +7,10 @@ use solana_program::{
     self,
     account_info::{self, next_account_info, AccountInfo},
     entrypoint::ProgramResult,
-    msg,
+    msg, program,
+    program_error::ProgramError,
     pubkey::Pubkey,
+    system_instruction,
 };
 pub struct Processor;
 
@@ -39,25 +41,96 @@ impl Processor {
     ) -> ProgramResult {
         let accounts_iter = &mut account_info.iter();
 
+        // Collect required accounts.
+        // System account to create other accounts
+        // creator is who is owner of this program
+        // bank is pda from creator
+        // project is pda from creator
         let system_account = next_account_info(accounts_iter)?;
         let creator = next_account_info(accounts_iter)?;
         let bank = next_account_info(accounts_iter)?;
-        let address = next_account_info(accounts_iter)?;
+        let project = next_account_info(accounts_iter)?;
 
-        let bank_bump = utils::verify_bank_address(
-            program_id,
-            bank.unsigned_key(),
-            &params.name,
-            creator.signer_key().ok_or(CrowdError::IllegalCreator)?,
-        )?;
-        let project_bump = utils::verify_project_address(
-            program_id,
-            address.unsigned_key(),
-            (&bank.key, bank_bump),
-        )?;
+        // refer public key for
+        // Creator is who is creating the peoject so must be signed
+        // bank address is unsigned as it is pda
+        // project_address is unsigned as it is pda
+        let creator_address = creator.signer_key().ok_or(CrowdError::IllegalCreator)?;
+        let bank_address = bank.unsigned_key();
+        let project_address = project.unsigned_key();
 
+        // Bank is derived from creater publick address and name of project
+        // so name must be unique for a single creator
+        let bank_seed = &[creator.unsigned_key().as_ref(), params.name.as_bytes()][..];
+        let bank_bump = utils::verify_pda(program_id, bank_address, bank_seed)
+            .map_err(|_| CrowdError::UnexpectedBankAddress)?;
+
+        // Address seed is bank seed combined with bank bump
+        let bank_bump_slice = &[bank_bump][..];
+        let project_seed = &[bank_address.as_ref(), bank_bump_slice][..];
+        let project_bump = utils::verify_pda(program_id, project_address, project_seed)
+            .map_err(|_| CrowdError::UnexpectedProjectAddress)?;
+
+        // Final bump be as expected as passed in data
         if project_bump != params.project_bump {
             Err(CrowdError::UnexpectedBump)?;
+        }
+
+        // Create a bank account with 0 space
+        // and enough rent exemption
+        {
+            let create_bank_instruction = {
+                let space = 0u64;
+                let lamports = utils::RENT.minimum_balance(space as usize);
+                system_instruction::create_account(
+                    creator_address,
+                    bank_address,
+                    lamports,
+                    space,
+                    program_id,
+                )
+            };
+
+            program::invoke_signed(
+                &create_bank_instruction,
+                &[creator.clone(), bank.clone()],
+                &[&[bank_seed[0], bank_seed[1], &[bank_bump]]],
+            )
+            .map_err(|e| {
+                if e == ProgramError::AccountAlreadyInitialized {
+                    CrowdError::BankAddresCollision.into()
+                } else {
+                    e
+                }
+            })?;
+        }
+
+        // Create project address with 0 space and
+        // minimum lamports
+        {
+            let create_project_instruction = {
+                let space = 0u64;
+                let lamports = utils::RENT.minimum_balance(space as usize);
+                system_instruction::create_account(
+                    &creator.key,
+                    &project.key,
+                    lamports,
+                    space,
+                    program_id,
+                )
+            };
+            program::invoke_signed(
+                &create_project_instruction,
+                &[project.clone(), creator.clone()],
+                &[&[project_seed[0], project_seed[1], &[project_bump]]],
+            )
+            .map_err(|e| {
+                if e == ProgramError::AccountAlreadyInitialized {
+                    CrowdError::ProjectAddressCollision.into()
+                } else {
+                    e
+                }
+            })?;
         }
 
         todo!();

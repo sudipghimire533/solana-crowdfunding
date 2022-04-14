@@ -20,6 +20,12 @@ pub enum CrowdError {
 
     #[error("Passed bump value was not as calculated")]
     UnexpectedBump,
+
+    #[error("This project address is already in use")]
+    ProjectAddressCollision,
+
+    #[error("This bank address is already in use")]
+    BankAddresCollision,
 }
 
 impl From<CrowdError> for ProgramError {

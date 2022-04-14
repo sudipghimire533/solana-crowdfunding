@@ -78,12 +78,15 @@ async function createProject(params) {
         [Buffer.from([instruction.CREATE_PROJECT]), create_params.serialize()],
     );
 
+    console.log("Owner: ", params.owner.publicKey.toBase58());
+    console.log("Bank: ", bank_address.toBase58());
+    console.log("Project address: ", project_address.toBase58());
     let init_instruction = new solana.TransactionInstruction({
         keys: [
             { pubkey: SYSTEM_RPOGRAM, isSigner: false, isWritable: false },
-            { pubkey: params.owner.publicKey, isSigner: true, isWriteable: false },
-            { pubkey: bank_address, isSigner: false, isWriteable: false },
-            { pubkey: project_address, isSigner: false, isWriteable: false },
+            { pubkey: params.owner.publicKey, isSigner: true, isWritable: true },
+            { pubkey: bank_address, isSigner: false, isWritable: true },
+            { pubkey: project_address, isSigner: false, isWritable: true },
         ],
         programId: programKeypair.publicKey,
         data: create_project_instruction,

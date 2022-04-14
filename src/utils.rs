@@ -1,7 +1,13 @@
 #![allow(unused_imports)]
 
 use crate::error::{self, CrowdError};
-use solana_program::{self, msg, pubkey::Pubkey};
+use solana_program::{self, msg, pubkey::Pubkey, rent};
+
+pub const RENT: rent::Rent = solana_program::rent::Rent {
+    lamports_per_byte_year: rent::DEFAULT_LAMPORTS_PER_BYTE_YEAR,
+    exemption_threshold: rent::DEFAULT_EXEMPTION_THRESHOLD,
+    burn_percent: rent::DEFAULT_BURN_PERCENT,
+};
 
 pub fn verify_pda(
     program_id: &Pubkey,
@@ -22,41 +28,4 @@ pub fn verify_pda(
         })
         .flatten()
         .ok_or(calculated_address)
-}
-
-pub fn verify_bank_address<'a>(
-    program_id: &Pubkey,
-    bank_address: &'a Pubkey,
-    project_name: &str,
-    project_owner: &Pubkey,
-) -> Result<u8, CrowdError> {
-    let bank_seed = &[project_owner.as_ref(), project_name.as_bytes()][..];
-
-    verify_pda(program_id, bank_address, bank_seed).map_err(|calculated| {
-        msg!(
-            "[Verify bank address] Expected {:?} & Calculated {:?}",
-            bank_address,
-            calculated
-        );
-        CrowdError::UnexpectedBankAddress
-    })
-}
-
-pub fn verify_project_address<'a>(
-    program_id: &Pubkey,
-    project_address: &'a Pubkey,
-    (bank_address, bank_bump): (&Pubkey, u8),
-) -> Result<u8, CrowdError> {
-    let bank_bump = [bank_bump];
-    let project_seed = &[bank_address.as_ref(), &bank_bump][..];
-
-    verify_pda(program_id, project_address, project_seed).map_err(|calculated| {
-        msg!(
-            "[Verify project address] Expected {:?} & Calculated {:?}",
-            project_address,
-            calculated
-        );
-
-        CrowdError::UnexpectedProjectAddress
-    })
 }
