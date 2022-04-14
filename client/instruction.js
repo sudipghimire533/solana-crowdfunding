@@ -6,36 +6,12 @@ const COMPILMENT_PROJECT = 0x1;
 class createParams {
     target = null;
     name = null;
+    project_bump = null;
 
     constructor(fields) {
         this.target = fields.target;
         this.name = new TextEncoder('utf8').encode(fields.name);
-
-        class Value {
-            value = null;
-
-            constructor(param) {
-                this.value = param;
-            }
-        }
-
-        function getSchema(type) {
-            return new Map([
-                [Value, {
-                    kind: 'struct',
-                    fields: [
-                        ['value', type]
-                    ]
-                }]
-            ]);
-        }
-
-        let target = borsh.serialize(getSchema('u64'), new Value(this.target)).toJSON().data;
-        let name = borsh.serialize(getSchema(['u8']), new Value(this.name)).toJSON().data;
-
-
-        console.log("\nTarget is", target);
-        console.log("\nName is", name);
+        this.project_bump = fields.project_bump;
     }
 
     serialize = function () {
@@ -49,7 +25,8 @@ const createParamsSchema = new Map([
             kind: 'struct',
             fields: [
                 ['target', 'u64'],
-                ['name', ['u8']]
+                ['name', ['u8']],
+                ['project_bump', 'u8'],
             ]
         }
     ],

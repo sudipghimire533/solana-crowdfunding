@@ -10,11 +10,12 @@ pub enum Instruction {
 
     Compliment { params: ComplimentParams },
 }
-#[derive(Debug, BorshDeserialize)]
+#[derive(Debug)]
 #[cfg_attr(test, derive(BorshSerialize))]
 pub struct CreateParams {
-    pub project: ProjectInfo,
-    pub address: Pubkey,
+    pub target: u64,
+    pub name: String,
+    pub project_bump: u8,
 }
 
 #[derive(Debug, BorshSerialize, BorshDeserialize, PartialEq, Eq, Clone)]
@@ -36,26 +37,6 @@ impl Instruction {
                 let target = <u64 as BorshDeserialize>::deserialize(&mut target_bytes)
                     .map_err(|_| InvalidInstruction)?;
 
-                let (mut bank_address_size_bytes, rest) = rest.split_at(4);
-                let bank_address_size =
-                    <u32 as BorshDeserialize>::deserialize(&mut bank_address_size_bytes)
-                        .map_err(|_| InvalidInstruction)? as usize;
-
-                let (mut bank_address_bytes, rest) = rest.split_at(bank_address_size);
-                let bank_address =
-                    <Pubkey as BorshDeserialize>::deserialize(&mut bank_address_bytes)
-                        .map_err(|_| InvalidInstruction)?;
-
-                let (mut owner_address_size_bytes, rest) = rest.split_at(4);
-                let owner_address_size =
-                    <u32 as BorshDeserialize>::deserialize(&mut owner_address_size_bytes)
-                        .map_err(|_| InvalidInstruction)? as usize;
-
-                let (mut owner_address_bytes, rest) = rest.split_at(owner_address_size);
-                let owner_address =
-                    <Pubkey as BorshDeserialize>::deserialize(&mut owner_address_bytes)
-                        .map_err(|_| InvalidInstruction)?;
-
                 let (mut name_length_bytes, rest) = rest.split_at(4);
                 let name_length = <u32 as BorshDeserialize>::deserialize(&mut name_length_bytes)
                     .map_err(|_| InvalidInstruction)? as usize;
@@ -64,25 +45,14 @@ impl Instruction {
                 let name =
                     String::from_utf8(name_bytes.to_vec()).map_err(|_| InvalidInstruction)?;
 
-                let (mut project_address_size_bytes, rest) = rest.split_at(4);
-                let project_address_size =
-                    <u32 as BorshDeserialize>::deserialize(&mut project_address_size_bytes)
-                        .map_err(|_| InvalidInstruction)? as usize;
-
-                let (mut project_address, _) = rest.split_at(project_address_size);
-                let project_address =
-                    <Pubkey as BorshDeserialize>::deserialize(&mut project_address)
-                        .map_err(|_| InvalidInstruction)?;
+                let (project_bump_bytes, _rest) = rest.split_at(1);
+                let project_bump = *project_bump_bytes.first().ok_or(InvalidInstruction)?;
 
                 instruction = Instruction::Create {
                     params: CreateParams {
-                        project: ProjectInfo {
-                            target,
-                            bank: bank_address,
-                            owner: owner_address,
-                            name,
-                        },
-                        address: project_address,
+                        name,
+                        target,
+                        project_bump,
                     },
                 };
             }
@@ -93,31 +63,5 @@ impl Instruction {
         }
 
         Ok(instruction)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn print_instructions() {
-        let print = |ins: Instruction| {
-            let mut serialized = Vec::<u8>::new();
-            <Instruction as BorshSerialize>::serialize(&ins, &mut serialized).unwrap();
-            println!("{:#?} is {:?}", ins, serialized);
-            println!("=====================");
-        };
-
-        let instructions = [Instruction::Create {
-            params: CreateParams {
-                project: Default::default(),
-                address: Pubkey::new_unique(),
-            },
-        }];
-
-        for ins in instructions {
-            print(ins);
-        }
     }
 }

@@ -7,27 +7,23 @@ pub enum CrowdError {
     InvalidInstruction = 0,
 
     #[error("No such project exists")]
-    InvalidProject = 2,
+    InvalidProject,
+
+    #[error("Creator didn't signed this instruction")]
+    IllegalCreator,
+
+    #[error("Bank address was not as expected")]
+    UnexpectedBankAddress,
+
+    #[error("This is not the expected project address")]
+    UnexpectedProjectAddress,
+
+    #[error("Passed bump value was not as calculated")]
+    UnexpectedBump,
 }
 
 impl From<CrowdError> for ProgramError {
     fn from(crowd_error: CrowdError) -> Self {
         ProgramError::Custom(crowd_error as u32)
-    }
-}
-
-impl TryFrom<u32> for CrowdError {
-    type Error = ();
-
-    fn try_from(error_code: u32) -> Result<CrowdError, Self::Error> {
-        use CrowdError::*;
-
-        let error = match error_code {
-            1 => InvalidInstruction,
-            2 => InvalidProject,
-            _ => return Err(()),
-        };
-
-        Ok(error)
     }
 }
