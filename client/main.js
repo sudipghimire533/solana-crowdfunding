@@ -177,10 +177,12 @@ async function main() {
         creditor: alice,
     });
     console.log(
-        "Alice complimented project with",
+        "Alice complimented project with amount of: ",
         compliment_amount / solana.LAMPORTS_PER_SOL,
-        "Hash", compliment_hash
+        ". Call Hash", compliment_hash
     );
+
+
 }
 
 main().then(

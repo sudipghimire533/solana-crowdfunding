@@ -38,6 +38,9 @@ pub enum CrowdError {
 
     #[error("Provided bank address doesn't match to project bank address")]
     BankAddressMismatch,
+
+    #[error("This project is not owned by current program")]
+    IllegalProjectAddressOwner,
 }
 
 impl From<CrowdError> for ProgramError {

@@ -41,8 +41,6 @@ async function getProjectInfo(connection, project_address) {
     const project_bytes = (await connection.getAccountInfo(project_address)).data;
     let project = new instruction.projectInfo();
 
-    console.log("Project bytes is");
-    console.log(project_bytes.toJSON());
     project.deserialize(project_bytes);
 
     return project;

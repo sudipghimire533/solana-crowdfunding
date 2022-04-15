@@ -33,6 +33,10 @@ impl Processor {
             Instruction::Compliment { params } => {
                 Self::compliment_project(params, program_id, account_info)
             }
+
+            Instruction::Withdraw { params } => {
+                Self::withdraw_funds(params, program_id, account_info)
+            }
         }
     }
 
@@ -175,7 +179,10 @@ impl Processor {
             .map_err(|_| CrowdError::CorruptedProjectData)?;
 
         if bank.unsigned_key().ne(&project_info.bank) {
-            Err(CrowdError::BankAddressMismatch)?
+            Err(CrowdError::BankAddressMismatch)?;
+        }
+        if bank.owner.ne(program_id) {
+            Err(CrowdError::IllegalProjectAddressOwner)?;
         }
 
         // Do actual lamports transfer
@@ -195,6 +202,14 @@ impl Processor {
             &mut &mut project.try_borrow_mut_data()?[..],
         )?;
 
+        Ok(())
+    }
+
+    pub fn withdraw_funds(
+        params: instruction::WithdrawParams,
+        program_id: &Pubkey,
+        account_info: &[AccountInfo],
+    ) -> ProgramResult {
         todo!();
 
         Ok(())
