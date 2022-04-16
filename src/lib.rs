@@ -1,6 +1,6 @@
-pub mod state;
+mod entrypoint;
 pub mod error;
 pub mod instruction;
-pub mod utils;
-mod entrypoint;
 mod processor;
+pub mod state;
+pub mod utils;
