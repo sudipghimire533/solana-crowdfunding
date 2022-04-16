@@ -41,6 +41,15 @@ pub enum CrowdError {
 
     #[error("This project is not owned by current program")]
     IllegalProjectAddressOwner,
+
+    #[error("This withdrawer is not allowed to perform this action")]
+    IllegalWithdrawer,
+
+    #[error("Milestone of this project is not yet here")]
+    UnfulfilledMilestone,
+
+    #[error("This project no longer accepts compliments..")]
+    InactiveProject,
 }
 
 impl From<CrowdError> for ProgramError {

@@ -8,6 +8,7 @@ pub struct ProjectInfo {
     pub milestone: u64,
     pub raised: u64,
     pub name: String,
+    pub withdrawn: bool,
 }
 
 impl ProjectInfo {

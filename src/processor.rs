@@ -34,9 +34,7 @@ impl Processor {
                 Self::compliment_project(params, program_id, account_info)
             }
 
-            Instruction::Withdraw { params } => {
-                Self::withdraw_funds(params, program_id, account_info)
-            }
+            Instruction::Withdraw => Self::withdraw_funds(program_id, account_info),
         }
     }
 
@@ -89,6 +87,7 @@ impl Processor {
             milestone: params.target,
             raised: 0,
             name: params.name.clone(),
+            withdrawn: false,
         };
 
         // Create a bank account with 0 space
@@ -102,7 +101,7 @@ impl Processor {
                     bank_address,
                     lamports,
                     space,
-                    program_id,
+                    system_account.unsigned_key(),
                 )
             };
 
@@ -178,10 +177,13 @@ impl Processor {
         let mut project_info = ProjectInfo::deserialize(&mut &**project.try_borrow_data()?)
             .map_err(|_| CrowdError::CorruptedProjectData)?;
 
+        if project_info.withdrawn {
+            Err(CrowdError::InactiveProject)?;
+        }
         if bank.unsigned_key().ne(&project_info.bank) {
             Err(CrowdError::BankAddressMismatch)?;
         }
-        if bank.owner.ne(program_id) {
+        if project.owner.ne(program_id) {
             Err(CrowdError::IllegalProjectAddressOwner)?;
         }
 
@@ -205,12 +207,61 @@ impl Processor {
         Ok(())
     }
 
-    pub fn withdraw_funds(
-        params: instruction::WithdrawParams,
-        program_id: &Pubkey,
-        account_info: &[AccountInfo],
-    ) -> ProgramResult {
-        todo!();
+    pub fn withdraw_funds(program_id: &Pubkey, account_info: &[AccountInfo]) -> ProgramResult {
+        let accounts_iter = &mut account_info.iter();
+
+        let system_account = next_account_info(accounts_iter)?;
+        let withdrawer = next_account_info(accounts_iter)?;
+        let project = next_account_info(accounts_iter)?;
+        let bank = next_account_info(accounts_iter)?;
+
+        let withdrawer_address = withdrawer
+            .signer_key()
+            .ok_or(CrowdError::IllegalWithdrawer)?;
+
+        let mut project_info = ProjectInfo::deserialize(&mut &**project.try_borrow_data()?)
+            .map_err(|_| CrowdError::CorruptedProjectData)?;
+
+        msg!("{:#?}", project_info);
+
+        if bank.unsigned_key().ne(&project_info.bank) {
+            Err(CrowdError::UnexpectedBankAddress)?;
+        }
+        if withdrawer_address.ne(&project_info.owner) {
+            Err(CrowdError::IllegalWithdrawer)?;
+        }
+        if project_info.raised < project_info.milestone {
+            Err(CrowdError::UnfulfilledMilestone)?;
+        }
+        if project_info.withdrawn {
+            Err(CrowdError::InactiveProject)?;
+        }
+
+        let bank_seed = &[withdrawer_address.as_ref(), project_info.name.as_bytes()][..];
+        let bank_bump = utils::verify_pda(program_id, bank.unsigned_key(), bank_seed)
+            .map_err(|_| CrowdError::UnexpectedBankAddress)?;
+
+        // Transfer from project bank to withdrawer address
+        {
+            let transfer_instruction = system_instruction::transfer(
+                &project_info.bank,
+                &project_info.owner,
+                bank.lamports(),
+            );
+            program::invoke_signed(
+                &transfer_instruction,
+                &[system_account.clone(), bank.clone(), withdrawer.clone()],
+                &[&[bank_seed[0], bank_seed[1], &[bank_bump]]],
+            )?;
+        }
+
+        project_info.withdrawn = true;
+
+        // Write updated data in project
+        <ProjectInfo as BorshSerialize>::serialize(
+            &project_info,
+            &mut &mut project.try_borrow_mut_data()?[..],
+        )?;
 
         Ok(())
     }

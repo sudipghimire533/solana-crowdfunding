@@ -10,7 +10,7 @@ pub enum Instruction {
 
     Compliment { params: ComplimentParams },
 
-    Withdraw { params: WithdrawParams },
+    Withdraw,
 }
 #[derive(Debug)]
 #[cfg_attr(test, derive(BorshSerialize))]
@@ -19,10 +19,6 @@ pub struct CreateParams {
     pub name: String,
     pub project_bump: u8,
 }
-
-#[derive(Debug)]
-#[cfg_attr(test, derive(BorshSerialize))]
-pub struct WithdrawParams {}
 
 #[derive(Debug, BorshSerialize, BorshDeserialize, PartialEq, Eq, Clone)]
 pub struct ComplimentParams {
@@ -73,7 +69,7 @@ impl Instruction {
             }
 
             2 => {
-                todo!();
+                instruction = Instruction::Withdraw;
             }
 
             _ => {

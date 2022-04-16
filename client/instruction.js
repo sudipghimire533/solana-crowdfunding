@@ -4,6 +4,7 @@ const buf = require("buffer");
 
 const CREATE_PROJECT = 0x0;
 const COMPILMENT_PROJECT = 0x1;
+const WITHDRAW_PROJECT = 0x2;
 
 class createParams {
     target = null;
@@ -101,3 +102,4 @@ exports.createParams = createParams;
 exports.complimentParams = complimentParams;
 exports.CREATE_PROJECT = CREATE_PROJECT;
 exports.COMPILMENT_PROJECT = COMPILMENT_PROJECT;
+exports.WITHDRAW_PROJECT = WITHDRAW_PROJECT;

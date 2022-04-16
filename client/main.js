@@ -85,6 +85,34 @@ async function complimentProject(params) {
     return tx_hash;
 }
 
+async function withdrawProject(params) {
+    let withdrawer = params.withdrawer;
+    let project_address = params.project;
+
+    let projectInfo = await utils.getProjectInfo(connection, project_address);
+    let project_bank = projectInfo.bank;
+
+    let withdraw_project_instruction = Buffer.from([instruction.WITHDRAW_PROJECT]);
+    let withdraw_tx = new solana.TransactionInstruction({
+        keys: [
+            { pubkey: SYSTEM_RPOGRAM, isSigner: false, isWritable: false },
+            { pubkey: withdrawer.publicKey, isSigner: true, isWritable: true },
+            { pubkey: project_address, isSigner: false, isWritable: true },
+            { pubkey: project_bank, isSigner: false, isWritable: true, }
+        ],
+        programId: programKeypair.publicKey,
+        data: withdraw_project_instruction,
+    });
+
+    let tx_hash = await solana.sendAndConfirmTransaction(
+        connection,
+        new solana.Transaction().add(withdraw_tx),
+        [withdrawer],
+    );
+
+    return tx_hash;
+}
+
 async function createProject(params) {
     let project_name = params.name;
     let project_target = params.target;
@@ -167,10 +195,10 @@ async function main() {
     await utils.transferFund(connection, {
         from: payer,
         to: alice.publicKey,
-        amount: solana.LAMPORTS_PER_SOL * 10,
+        amount: solana.LAMPORTS_PER_SOL * 20,
     });
 
-    let compliment_amount = 2 * solana.LAMPORTS_PER_SOL;
+    let compliment_amount = 11 * solana.LAMPORTS_PER_SOL;
     let compliment_hash = await complimentProject({
         amount: compliment_amount,
         project: crowdfund_address,
@@ -182,7 +210,14 @@ async function main() {
         ". Call Hash", compliment_hash
     );
 
-
+    let withdraw_hash = await withdrawProject({
+        withdrawer: project_creator,
+        project: crowdfund_address,
+    });
+    console.log(
+        "Withdrawn project", crowdfund_address.toBase58(),
+        ". Transaction hash: ", withdraw_hash
+    );
 }
 
 main().then(
